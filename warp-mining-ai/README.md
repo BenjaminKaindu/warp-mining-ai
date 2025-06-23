@@ -71,7 +71,7 @@ warp-mining-ai/
 
 ### 1. Clone and Setup
 ```bash
-git clone https://github.com/your-repo/warp-mining-ai
+git clone https://github.com/BenjaminKaindu/warp-mining-ai
 cd warp-mining-ai
 ```
 
