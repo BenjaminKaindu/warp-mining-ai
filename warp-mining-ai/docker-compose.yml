@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: warp-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./models:/models
+    environment:
+      - OLLAMA_ORIGINS=*
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: warp-webui
+    ports:
+      - "3000:8080"
+    volumes:
+      - open_webui_data:/app/backend/data
+      - ./custom:/app/backend/data/custom
+      - ./knowledge:/app/backend/data/knowledge
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_NAME=Warp Mining AI Assistant
+      - WEBUI_URL=http://localhost:3000
+      - DEFAULT_MODELS=llama3.1:latest
+      - ENABLE_RAG=true
+      - ENABLE_WEB_SEARCH=false
+      - ENABLE_IMAGE_GENERATION=false
+      - ENABLE_COMMUNITY_SHARING=false
+      - SHOW_ADMIN_DETAILS=false
+      - CUSTOM_THEME=mining
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  warp-mining-engine:
+    build: 
+      context: .
+      dockerfile: Dockerfile.mining
+    container_name: warp-mining-engine
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./mining_data:/app/data
+      - ./simulations:/app/simulations
+      - ./knowledge:/app/knowledge
+    environment:
+      - WARP_MODE=mining_assistant
+      - SIMULATION_ENGINE=enabled
+      - EXPLORATION_ENGINE=enabled
+      - OPTIMIZATION_ENGINE=enabled
+    depends_on:
+      - ollama
+      - open-webui
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+  open_webui_data:
+
+networks:
+  default:
+    name: warp-mining-network

@@ -1,0 +1,52 @@
+FROM python:3.11-slim
+
+LABEL maintainer="Warp Mining AI Assistant"
+LABEL description="Specialized mining simulation and optimization engine"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/simulations /app/knowledge /app/engines
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY ./engines/ ./engines/
+COPY ./knowledge/ ./knowledge/
+COPY ./templates/ ./templates/
+COPY main.py .
+COPY config.py .
+
+# Create data directories
+RUN mkdir -p /app/data/{ore_samples,extraction_logs,exploration_data,optimization_results}
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV WARP_MODE=mining_assistant
+ENV SIMULATION_ENGINE=enabled
+ENV EXPLORATION_ENGINE=enabled
+ENV OPTIMIZATION_ENGINE=enabled
+
+# Expose port for web interface
+EXPOSE 8888
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8888/health || exit 1
+
+# Start the mining engine
+CMD ["python", "main.py"]
